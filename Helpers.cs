@@ -28,15 +28,14 @@ namespace HashChecker {
             }
             else {
                 Console.Write("\n │\t├─ !No proxy detected.\n\t");
-                Console.Write("Setting proxy to \"http://mcafeewgf5.int.teb.com.tr:80\"");
+                Console.Write("Setting proxy to MYPROXY");
                 //System.Environment.Exit(1);
-                myProxySetting.Address = new Uri("http://mcafeewgf5.int.teb.com.tr:80");
+                myProxySetting.Address = new Uri("MYPROXY");
             }
             while (true) {
                 // Setting User Creds to pass proxy =============
                 string userName = System.Security.Principal.WindowsIdentity.GetCurrent().Name.Split('\\')[1];
                 Console.Write("\n │\t├─ Username: ");
-                userName = (userName.Length < 3 || userName.Length > 10 || (!userName.Contains("P") && !userName.Contains("p"))) ? "unknown" : userName;
                 if (userName == "unknown")
                     userName = Console.ReadLine().Trim('\n', '\t');
                 Console.Write(userName);
