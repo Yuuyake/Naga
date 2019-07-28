@@ -1,3 +1,5 @@
+<img src="/Resources/icon.ico" width="100" height="100"> 
+
 # VirusTotal_HashChecker
 
 - Checks given hashes(md5,sha1,sha2) for malicious detection on Virus Total
