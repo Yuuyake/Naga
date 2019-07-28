@@ -10,8 +10,9 @@ using System.Security;
 using HashChecker.Properties;
 using Console = Colorful.Console;
 
-namespace HashChecker {
+namespace HashChecker { 
     class Helpers {
+        static public string userName = "unknown";
         /// <summary>
         /// 
         /// </summary>
@@ -28,13 +29,13 @@ namespace HashChecker {
             }
             else {
                 Console.Write("\n │\t├─ !No proxy detected.\n\t");
-                Console.Write("Setting proxy to MYPROXY");
+                Console.Write("Setting proxy to \"YOUR GATEWAY\"");
                 //System.Environment.Exit(1);
-                myProxySetting.Address = new Uri("MYPROXY");
+                myProxySetting.Address = new Uri("YOUR GATEWAY");
             }
             while (true) {
                 // Setting User Creds to pass proxy =============
-                string userName = System.Security.Principal.WindowsIdentity.GetCurrent().Name.Split('\\')[1];
+                userName = System.Security.Principal.WindowsIdentity.GetCurrent().Name.Split('\\')[1];
                 Console.Write("\n │\t├─ Username: ");
                 if (userName == "unknown")
                     userName = Console.ReadLine().Trim('\n', '\t');
@@ -98,9 +99,6 @@ namespace HashChecker {
         /// prints live results
         /// </summary>
         /// <param name="results"></param>
-        static public void printResults() {
-
-        }
     }
     public class Result {
         public string order ;
@@ -117,8 +115,8 @@ namespace HashChecker {
         }
         public override string ToString() {
             return 
-                "\t│ [" + order + "] " +
-                md5 + "   \t" +
+                " [" + order + "] " +
+                md5 + "     \t" +
                 resultMcGw + "       \t" +
                 resultMc + "               ";
         }
