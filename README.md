@@ -1,5 +1,7 @@
 # VirusTotal_HashChecker
 
-Checks given hashes, returns ones that is not detected by McAfee, saves to txt and mails to target
+> Checks given hashes(md5,sha1,sha2) for malicious detection on Virus Total
+> Returns ones that is not detected by McAfee (changeble)
+> Saves to txt and mails to target adress
 
-Can be integrated with ATAR (autamated defence/response tool).
+>> Can be integrated with ATAR (autamated defence/response tool).
