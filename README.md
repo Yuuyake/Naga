@@ -7,4 +7,4 @@ __
 >- Returns ones that is not detected by McAfee (changeble)
 >- Saves to txt and mails to target adress
 
---> Can be integrated with ATAR (autamated defence/response tool).
+      --> Can be integrated with ATAR (autamated defence/response tool).
