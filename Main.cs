@@ -28,6 +28,7 @@ namespace HashChecker {
         static string banner                = Resources.banner;
         static string hashFile              = "hashes.txt";
         static public Random random         = new Random();
+        static public List<string> md5List  = new List<string>();
         static void Main(string[] args) {
             Console.OutputEncoding = Encoding.UTF8;
             Console.WriteFormatted(banner, Color.LightGoldenrodYellow);
@@ -36,7 +37,7 @@ namespace HashChecker {
 
             Task liveBoard = null;
             try {
-                List<string> md5List = new List<string>(File.ReadAllLines(hashFile));
+                md5List = new List<string>(File.ReadAllLines(hashFile));
                 md5List = md5List.Select(s => String.Join("", s.Split(',', '\n', '\t'))).Distinct().ToList(); // clean dirty md5 list
                 liveBoard = Task.Factory.StartNew(() => LiveBoard()); // run the liveboard to see results alive
                 virusTotalAPI.checkHashes(md5List);
@@ -49,7 +50,7 @@ namespace HashChecker {
             }
             LiveBoard();//run again to show last results
             WriteToFile();
-            WriteSomeMail();
+            WriteCsirtMail();
             WriteAtarMail();
             Console.SetCursorPosition(0, banner.Split('\n').ToList().Count + Api.results.Count + 3 );
             Console.WriteFormatted("\n__________________________________________  ALL DONE _______________________________________________ ", Color.LightGoldenrodYellow);
@@ -65,25 +66,21 @@ namespace HashChecker {
             string blank = new string('_', 28);
             Console.WriteFormatted(banner, Color.LightGoldenrodYellow);
             int dashBoardLen = Resources.banner.Split('\n').Count();
-            List<Result> tempResults = null;
+            int finished = 0;
             do {
-                tempResults = Api.results;
+                List<string> tempResults = Api.results.ToList();
+                finished = Api.nFinished;
                 try {
                     Console.SetCursorPosition(0, dashBoardLen);
-                    Console.WriteFormatted("\tRequests Sent [{0}/{1}] DONE \n\n", Color.Cyan, Color.LightGoldenrodYellow,
-                    tempResults.Count(ss => ss.isCompleted == true), tempResults.Count());
+                    Console.WriteFormatted("\tRequests Sent [{0}/{1}] DONE \n\n", Color.Cyan, Color.LightGoldenrodYellow, finished, md5List.Count);
                     Console.WriteFormatted("\t [No] Hash" + blank + "   \tMcGW Detected? \tMcAffee Detected?" + Environment.NewLine,Color.LightGoldenrodYellow);
-                    Color focusColor;
                     Color backColor;
                     int counter = 0;
-                    foreach (var oneResult in tempResults.ToList()) {
-                        focusColor = Color.Cyan;
+                    foreach (var oneResult in tempResults) {
                         backColor = Color.Green;
-                        if (oneResult.isCompleted == false || oneResult.resultMc == "NotParsed") {
-                            focusColor = Color.Red;
+                        if (oneResult.isCompleted == false || oneResult.resultMc == "NotParsed")
                             backColor = Color.Red;
-                        }
-                        Console.WriteLineFormatted("\t│ [{0}] " + oneResult.DashPrint(), focusColor, backColor, (counter + 1));
+                        Console.WriteLineFormatted("\t│ [{0}] " + oneResult.DashPrint(), Color.Cyan, backColor, (counter + 1));
                         counter++;
                     }// end of for
                 }// end of try
@@ -92,12 +89,12 @@ namespace HashChecker {
                 }
                 Console.SetCursorPosition(0, 0);
                 Thread.Sleep(900);
-            } while (tempResults.Count(ss=> ss.isCompleted == false) != 0 );
+            } while (finished != md5List.Count);
         }
         /// <summary>
         /// Prepares mail for SOME
         /// </summary>
-        static public void WriteSomeMail() {
+        static public void WriteCsirtMail() {
             string attachFile = Directory.GetCurrentDirectory() + "\\results.txt";
             var resultStr = "[No] Hash____________________________    McGW Detected?    McAffee Detected?<br/>" + String.Join("",
                 Api.results.Select(ss => ss.MailPrint()));

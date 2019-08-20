@@ -91,9 +91,5 @@ namespace HashChecker {
             } while (true);
             return securePwd;
         }
-        /// <summary>
-        /// prints live results
-        /// </summary>
-        /// <param name="results"></param>
     }
 }

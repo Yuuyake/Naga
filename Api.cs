@@ -17,7 +17,7 @@ namespace HashChecker {
         static public List<Task> allTasks    = new List<Task>(); // list of async task that will do the API calls
         static public Random random          = new Random();
         static public SemaphoreSlim myLocker = new SemaphoreSlim(1, 1);
-        static public bool limitReached      = false;
+        static public int nFinished          = 0;
         static public string apiURL = "https://www.virustotal.com/vtapi/v2/file/report?apikey=";
         public WebProxy myProxySetting;
 
@@ -32,7 +32,7 @@ namespace HashChecker {
                         apiKeys.ForEach(kk => kk.usageLeft = 4);// api key limit is 4
                     }
                     else {
-                        apiKeys[tempKey.index].usageLeft = tempKey.usageLeft - 1;
+                        apiKeys[tempKey.index].usageLeft -= 1;
                         return tempKey;
                     }
                 }//end of while
@@ -82,21 +82,22 @@ namespace HashChecker {
             foreach (int cnt in Enumerable.Range(0, listMD5.Count))
                 results.Add(new Result(false, cnt.ToString(), listMD5[cnt], "Getting...", "Getting..."));
 
-            while (true) {
-                for (int i = 0; i < apiKeys.Count; i++) {
-                    // counter to pass parametre to "checkOneMD5" function
-                    // bc of async function takes long to start, "i" will change before it and this have to be prevented
-                    int counter = i;
-                    allTasks.Add(new Task(() => results[counter] = checkOneHash(listMD5[counter], counter)));
-                    allTasks[counter].Start();
-                    //results[counter] = checkOneMD5(listMD5[counter]);
-                    Thread.Sleep(200);
+            int maxParallel = 30;
+            for (int i = 0; i < listMD5.Count; i++)
+            {
+                // counter to pass parametre to "checkOneMD5" function
+                // bc of async function takes long to start, "i" will change before it and this have to be prevented
+                int counter = i;
+                allTasks.Add(new Task(() => results[counter] = checkOneHash(listMD5[counter], counter)));
+                allTasks[counter].Start();
+                if(allTasks.Count == maxParallel)
+                {
+                    int idx = Task.WaitAny(allTasks.ToArray());
+                    allTasks.RemoveAt(idx);
                 }
-
-                Task.WaitAny(allTasks.ToArray());
+                //results[counter] = checkOneMD5(listMD5[counter]);
+                Thread.Sleep(200);
             }
-
-
         }
         /// <summary>
         /// methot to get a VirusTotal result of given MD5 in aspect of McAfee and McAfee-Gw
@@ -118,7 +119,6 @@ namespace HashChecker {
                     if (resultJson.response_code == "0") {
                         tempResult.resultMc   = "NotInDB";
                         tempResult.resultMcGw = "NotInDB";
-                        tempResult.isCompleted = true;
                     }
                     try { tempResult.md5 = resultJson.md5; }
                     catch { tempResult.md5 = "SHA_" + hash; }
@@ -134,6 +134,7 @@ namespace HashChecker {
                     tempResult.resultMc = "Unknown";
                 }
                 tempResult.isCompleted = true;
+                nFinished++;
                 return tempResult;
             }// while (true)
         }// checkMD5s(string MD5)
