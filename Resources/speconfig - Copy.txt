@@ -1,0 +1,12 @@
+﻿{
+  "proxyAdress": "YOUR_GATEWAY_URL:PORT",
+  "proxyUsername": "xaxaxaxa",
+  "proxyPassword": "nononononono",
+  "csirtMail": "aa@bb.com",
+  "ksdestekMail": "aa@bb.com",
+  "atarMail": "aa@bb.com",
+  "atarTitle": "YOUR_ATAR_INTEGRATION",
+  "vtApiKeys": [
+    {"id": "k1","pass": "4b17dea20e1caa790f045dcb5b3063a15428f8fe4a00d907fa5e9d70f8dee258"},
+  ]
+}

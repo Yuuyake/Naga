@@ -24,9 +24,9 @@ namespace HashChecker {
             }
             else {
                 Console.Write("\n │\t├─ !No proxy detected.\n\t");
-                Console.Write("Setting proxy to \"YOUR_PROXY_ADDRESS\"");
+                Console.Write("Setting proxy to \"" + MainClass.speconfig.proxyAdress + "\"");
                 //System.Environment.Exit(1);
-                myProxySetting.Address = new Uri("YOUR_PROXY_ADDRESS");
+                myProxySetting.Address = new Uri(MainClass.speconfig.proxyAdress);
             }
             while (true) {
                 // Setting User Creds to pass proxy =============
@@ -50,7 +50,7 @@ namespace HashChecker {
                         using (StreamReader reader = new StreamReader(stream))
                             reader.ReadToEnd();
                     }
-                    Console.WriteFormatted(" >> Proxy passed ",Color.Green);
+                    Console.WriteFormatted(" >> Proxy passed ", Color.Green);
                     break;
                 }
                 catch (Exception e) {

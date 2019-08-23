@@ -62,12 +62,12 @@ namespace HashChecker.Properties {
         
         /// <summary>
         ///   Looks up a localized string similar to 
-        ///	███╗   ███╗██████╗ ███████╗     ██████╗██╗  ██╗███████╗ ██████╗██╗  ██╗███████╗██████╗ 
-        ///	████╗ ████║██╔══██╗██╔════╝    ██╔════╝██║  ██║██╔════╝██╔════╝██║ ██╔╝██╔════╝██╔══██╗
-        ///	██╔████╔██║██║  ██║███████╗    ██║     ███████║█████╗  ██║     █████╔╝ █████╗  ██████╔╝
-        ///	██║╚██╔╝██║██║  ██║╚════██║    ██║     ██╔══██║██╔══╝  ██║     ██╔═██╗ ██╔══╝  ██╔══██╗
-        ///	██║ ╚═╝ ██║██████╔╝███████║    ╚██████╗██║  ██║███████╗╚██████╗██║  ██╗███████╗██║  ██║
-        ///	╚═╝     ╚═╝╚═════╝ ╚══════╝     ╚═════╝╚═╝  ╚═╝╚══════╝ ╚══ [rest of string was truncated]&quot;;.
+        /// ██╗  ██╗ █████╗ ███████╗██╗  ██╗     ██████╗██╗  ██╗███████╗ ██████╗██╗  ██╗███████╗██████╗ 
+        /// ██║  ██║██╔══██╗██╔════╝██║  ██║    ██╔════╝██║  ██║██╔════╝██╔════╝██║ ██╔╝██╔════╝██╔══██╗
+        /// ███████║███████║███████╗███████║    ██║     ███████║█████╗  ██║     █████╔╝ █████╗  ██████╔╝
+        /// ██╔══██║██╔══██║╚════██║██╔══██║    ██║     ██╔══██║██╔══╝  ██║     ██╔═██╗ ██╔══╝  ██╔══██╗
+        /// ██║  ██║██║  ██║███████║██║  ██║    ╚██████╗██║  ██║███████╗╚██████╗██║  ██╗███████╗██║  ██║
+        /// ╚═╝  ╚═╝╚═╝  ╚═╝╚══════╝╚═╝  ╚═╝   [rest of string was truncated]&quot;;.
         /// </summary>
         internal static string banner {
             get {
@@ -103,6 +103,26 @@ namespace HashChecker.Properties {
         internal static string scanMD5result {
             get {
                 return ResourceManager.GetString("scanMD5result", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to {
+        ///  &quot;proxyAdress&quot;: &quot;http://mcafeewgf5.int.teb.com.tr:80&quot;,
+        ///  &quot;proxyUsername&quot;: &quot;P31908&quot;,
+        ///  &quot;proxyPassword&quot;: &quot;nononononono&quot;,
+        ///  &quot;csirtMail&quot;: &quot;siberolay@teb.com.tr&quot;,
+        ///  &quot;ksdestekMail&quot;: &quot;kullaniciservisleridestek@teb.com.tr&quot;,
+        ///  &quot;atarMail&quot;: &quot;AtarMail@teb.com.tr&quot;,
+        ///  &quot;atarTitle&quot;: &quot;ATAR_TEB_INT_&quot;,
+        ///  &quot;vtApiKeys&quot;: [
+        ///    {&quot;id&quot;: &quot;k1&quot;,&quot;pass&quot;: &quot;4b17dea20e1caa790f045dcb5b3063a15428f8fe4a00d907fa5e9d70f8dee258&quot;},
+        ///    {&quot;id&quot;: &quot;k2&quot;,&quot;pass&quot;: &quot;bb4f6a9193534b8e053bc19a717ec3023aaba49e2a2089ee2c9a6b74a658b161&quot;},
+        ///    {&quot;id&quot;: [rest of string was truncated]&quot;;.
+        /// </summary>
+        internal static string speconfig {
+            get {
+                return ResourceManager.GetString("speconfig", resourceCulture);
             }
         }
         

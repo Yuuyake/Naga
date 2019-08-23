@@ -13,7 +13,6 @@ using System.Collections.Generic;
 using System.Drawing;
 using System.IO;
 using System.Linq;
-using System.Net;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
@@ -22,28 +21,37 @@ using Microsoft.Office.Interop.Outlook;
 using OutlookApp = Microsoft.Office.Interop.Outlook.Application;
 using Console = Colorful.Console;
 using System.Text.RegularExpressions;
+using Newtonsoft.Json;
 
 namespace HashChecker {
     public class MainClass {
-        static string banner                = Resources.banner;
-        static string hashFile              = "hashes.txt";
-        static public Random random         = new Random();
-        static public List<string> md5List  = new List<string>();
+        static public Api vtApi;
+        static public Config speconfig;
+        static string banner = Resources.banner;
+        static string hashFile = "hashes.txt";
+        static public List<string> md5List = new List<string>();
+        static string header = "[No ] " + "Hash".PadRight(37) + "Rate".PadRight(12) + "McGW Detected?".PadRight(18) + "McAffee Detected?".PadRight(16);
+
         static void Main(string[] args) {
             Console.OutputEncoding = Encoding.UTF8;
             Console.WriteFormatted(banner, Color.LightGoldenrodYellow);
-            Api virusTotalAPI = new Api();
-            virusTotalAPI.myProxySetting = Helpers.initializeProxyConfigs();
-
+            try { speconfig = JsonConvert.DeserializeObject<Config>(Resources.speconfig); }
+            catch (System.Exception ee) {
+                Console.WriteFormatted("\n Config file problem:\n\t" + ee.Message, Color.Red);
+                Console.ReadLine();
+                return;
+            }
+            vtApi = new Api();
+            vtApi.myProxySetting = Helpers.initializeProxyConfigs();
             Task liveBoard = null;
             try {
                 md5List = new List<string>(File.ReadAllLines(hashFile));
                 md5List = md5List.Select(s => String.Join("", s.Split(',', '\n', '\t'))).Distinct().ToList(); // clean dirty md5 list
                 liveBoard = Task.Factory.StartNew(() => LiveBoard()); // run the liveboard to see results alive
-                virusTotalAPI.checkHashes(md5List);
+                vtApi.checkHashes(md5List);
 
                 liveBoard.Wait();
-                Api.results = Api.results.OrderBy(ss => ss.resultMc).ToList();
+                vtApi.results = vtApi.results.OrderBy(ss => ss.resultMc).ToList();
             }
             catch (System.Exception e) {
                 Console.WriteLineFormatted("\n | Exception: " + e.Message, Color.Red);
@@ -52,9 +60,9 @@ namespace HashChecker {
             WriteToFile();
             WriteCsirtMail();
             WriteAtarMail();
-            Console.SetCursorPosition(0, banner.Split('\n').ToList().Count + Api.results.Count + 3 );
-            Console.WriteFormatted("\n__________________________________________  ALL DONE _______________________________________________ ", Color.LightGoldenrodYellow);
-            Console.WriteFormatted("\n____________________________________________________________________________________________________ ", Color.LightGoldenrodYellow);
+            Console.SetCursorPosition(0, banner.Split('\n').ToList().Count + vtApi.results.Count + 3);
+            Console.WriteFormatted("\n__________________________________________  ALL DONE ".PadRight(100,'_'), Color.LightGoldenrodYellow);
+            Console.WriteFormatted("\n_".PadRight(100,'_'), Color.LightGoldenrodYellow);
             Console.ReadLine();
             Environment.Exit(0);
         }
@@ -68,19 +76,19 @@ namespace HashChecker {
             int dashBoardLen = Resources.banner.Split('\n').Count();
             int finished = 0;
             do {
-                List<string> tempResults = Api.results.ToList();
-                finished = Api.nFinished;
+                List<Result> tempResults = vtApi.results.ToList();
+                finished = vtApi.nFinished;
                 try {
                     Console.SetCursorPosition(0, dashBoardLen);
                     Console.WriteFormatted("\tRequests Sent [{0}/{1}] DONE \n\n", Color.Cyan, Color.LightGoldenrodYellow, finished, md5List.Count);
-                    Console.WriteFormatted("\t [No] Hash" + blank + "   \tMcGW Detected? \tMcAffee Detected?" + Environment.NewLine,Color.LightGoldenrodYellow);
+                    Console.WriteFormatted("\t  " + header + Environment.NewLine, Color.LightGoldenrodYellow);
                     Color backColor;
                     int counter = 0;
                     foreach (var oneResult in tempResults) {
                         backColor = Color.Green;
                         if (oneResult.isCompleted == false || oneResult.resultMc == "NotParsed")
                             backColor = Color.Red;
-                        Console.WriteLineFormatted("\t│ [{0}] " + oneResult.DashPrint(), Color.Cyan, backColor, (counter + 1));
+                        Console.WriteLineFormatted("\t│ [{0}] " + oneResult.DashPrint(), Color.Cyan, backColor, (counter + 1).ToString().PadRight(3));
                         counter++;
                     }// end of for
                 }// end of try
@@ -94,10 +102,9 @@ namespace HashChecker {
         /// <summary>
         /// Prepares mail for SOME
         /// </summary>
-        static public void WriteCsirtMail() {
+        static void WriteCsirtMail() {
             string attachFile = Directory.GetCurrentDirectory() + "\\results.txt";
-            var resultStr = "[No] Hash____________________________    McGW Detected?    McAffee Detected?<br/>" + String.Join("",
-                Api.results.Select(ss => ss.MailPrint()));
+            var resultStr = header + "<br/>" + String.Join("",vtApi.results.Select(ss => ss.ToString() + "  <br/>"));
             //File.ReadAllText(attachFile).Replace("\r\n", "<p></p>").Replace("\t", "&#9;");
             OutlookApp outlookApp = new OutlookApp();
             MailItem mailItem = outlookApp.CreateItem(OlItemType.olMailItem);
@@ -109,10 +116,10 @@ namespace HashChecker {
 @"Merhaba,<br/>
 Aşağıdaki -McAffee Detected?- değeri False ve NotInDB olan <strong>MD5 HASH'lerin engellenmesi</strong> ATAR sistemi üzerinden yapılmıştır.<br/>
 Syg.<br/>
-" + resultStr + "</pre>";
+ " + resultStr + "</pre>";
 
-            mailItem.To = "aa,bb,cc";
-            mailItem.CC = "aa,bb,cc";
+            mailItem.To = speconfig.csirtMail;
+            mailItem.CC = speconfig.ksdestekMail;
             if (!File.Exists(attachFile))
                 Console.Write("\nAttached document " + attachFile + " does not exist", Color.Red);
             else {
@@ -120,20 +127,20 @@ Syg.<br/>
                 mailItem.Attachments.Add(attachFile, OlAttachmentType.olByValue, Type.Missing, Type.Missing);
             }
             mailItem.Display();
-        }        
+        }
         /// <summary>
         /// Prepares mail for ATAR
         /// </summary>
-        static public void WriteAtarMail() {
+        static void WriteAtarMail() {
             string attachFile = Directory.GetCurrentDirectory() + "\\results.txt";
-            string mailBody = String.Join("", Api.results.Where(ss => 
+            string mailBody = String.Join("", vtApi.results.Where(ss =>
                 (ss.resultMc == "False" || ss.resultMc == "NotInDB") &&
                 Regex.IsMatch(ss.md5, "^[0-9a-fA-F]{32}$", RegexOptions.Compiled)).Select(news => news.md5 + "<br/>"));
             OutlookApp outlookApp = new OutlookApp();
             MailItem mailItem = outlookApp.CreateItem(OlItemType.olMailItem);
-            mailItem.To = "aa,bb,cc";
-            mailItem.CC = "aa,bb,cc";
-            mailItem.Subject = "XXX_" + HashChecker.Helpers.userName + "_" + DateTime.Now.ToString("ddMMMMyyyy");
+            mailItem.To = speconfig.atarMail;
+            mailItem.CC = speconfig.csirtMail;
+            mailItem.Subject = speconfig.atarTitle + HashChecker.Helpers.userName + "_" + DateTime.Now.ToString("ddMMMMyyyy");
             mailItem.HTMLBody = "<p style=\"font-family:'consolas'\" >" + mailBody + "</p>";
             mailItem.Importance = OlImportance.olImportanceHigh;
             mailItem.Display();
@@ -141,10 +148,9 @@ Syg.<br/>
         /// <summary>
         /// 
         /// </summary>
-        static public void WriteToFile() {
-            File.WriteAllText("results.txt",
-                "[No] Hash" + (new string('_', Api.results.First().md5.Length - 4)) + "   \tMcGW Detected? \tMcAffee Detected?" + Environment.NewLine);
-            File.AppendAllLines("results.txt", Api.results.Select(ss => ss.ToString()).ToArray());
+        static void WriteToFile() {
+            File.WriteAllText("results.txt", header + Environment.NewLine);
+            File.AppendAllLines("results.txt", vtApi.results.Select(ss => ss.ToString()).ToArray());
         }
     }
 }// end of namespace

@@ -124,6 +124,9 @@
   <data name="scanMD5result" type="System.Resources.ResXFileRef, System.Windows.Forms">
     <value>..\Resources\scanMD5result.txt;System.String, mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089;windows-1254</value>
   </data>
+  <data name="speconfig" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>..\Resources\speconfig.txt;System.String, mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089;utf-8</value>
+  </data>
   <data name="vicon" type="System.Resources.ResXFileRef, System.Windows.Forms">
     <value>..\Resources\vicon.ico;System.Drawing.Icon, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
   </data>
