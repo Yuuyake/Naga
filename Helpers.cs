@@ -32,7 +32,7 @@ namespace HashChecker {
                 // Setting User Creds to pass proxy =============
                 userName = System.Security.Principal.WindowsIdentity.GetCurrent().Name.Split('\\')[1];
                 Console.Write("\n │\t├─ Username: ");
-                userName = (userName.Length < 3 || userName.Length > 10 || (!userName.Contains("P") && !userName.Contains("p"))) ? "unknown" : userName;
+                userName = (userName.Length < 3 || userName.Length > 10 ) ? "unknown" : userName;
                 if (userName == "unknown")
                     userName = Console.ReadLine().Trim('\n', '\t');
                 Console.Write(userName);
