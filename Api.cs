@@ -14,11 +14,12 @@ namespace Naga {
     public class Api {
         public List<ApiKey> apiKeys;
         public List<Result> results;
-        public List<Task> allTasks = new List<Task>(); // list of async task that will do the API calls
+        public List<Task> allTasks; // list of async task that will do the API calls
         public Random random;
         public SemaphoreSlim myLocker;
         public Stopwatch timer;
         public int nFinished;
+        public int sessionTime;
         public string status;
         public string apiURL;
         public WebProxy myProxySetting;
@@ -32,10 +33,10 @@ namespace Naga {
                         status = "KeyLimit";
                         if(timer.IsRunning == false)
                             timer.Start();
-                        Thread.Sleep(40000);
+                        Thread.Sleep(sessionTime*1000);
                         apiKeys.ForEach(kk => kk.usageLeft = 4);// api key limit is 4
                         status = "NewSession";
-                        timer.Stop();
+                        timer.Reset();
                     }
                     else {
                         apiKeys[tempKey.index].usageLeft -= 1;
@@ -47,15 +48,16 @@ namespace Naga {
                 myLocker.Release();
             }
         }
-        public async void Delay(int miliseconds) {await Task.Delay(miliseconds); }
         public Api() {
-            timer = new Stopwatch();
             apiKeys  = new List<ApiKey>();
             results  = new List<Result>();
             allTasks = new List<Task>();
             random   = new Random();
             myLocker = new SemaphoreSlim(1, 1);
+            allTasks = new List<Task>();
+            timer    = new Stopwatch();
             status   = "initial";
+            sessionTime = 50;
             apiURL   = "https://www.virustotal.com/vtapi/v2/file/report?apikey=";
             nFinished = 0;
             int counter = 0;
@@ -94,7 +96,7 @@ namespace Naga {
                 // bc of async function takes long to start, "i" will change before it and this have to be prevented
                 int counter = i;
                 allTasks.Add(new Task(() => results[counter] = checkOneHash(listMD5[counter], counter)));
-                allTasks[counter].Start();
+                allTasks[allTasks.Count-1].Start();
                 // non-async method
                 //results[counter] = checkOneMD5(listMD5[counter]);
                 await Task.Delay(200);

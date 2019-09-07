@@ -80,9 +80,9 @@ namespace Naga {
                 string waiting = "0";
                 try {
                     if (vtApi.timer.IsRunning)
-                        waiting = (vtApi.timer.ElapsedMilliseconds / 1000).ToString();
+                        waiting = ((vtApi.sessionTime - vtApi.timer.ElapsedMilliseconds / 1000)% vtApi.sessionTime).ToString();
                     Console.SetCursorPosition(0, dashBoardLen + 1);
-                    Console.WriteFormatted("\tRequests Sent [{0}/{1}] DONE " + "".PadRight(cDots%5+1,'.').PadRight(6) + "Seconds for new Requests: {2}\n\n",
+                    Console.WriteFormatted("\tRequests Sent [{0}/{1}] DONE " + "".PadRight(cDots%5+1,'.').PadRight(6) + " new Requests in {2} seconds  \n\n",
                         Color.Cyan, Color.LightGoldenrodYellow, finished, md5List.Count,waiting);
                     Console.WriteFormatted("\t  " + header, Color.LightGoldenrodYellow);
                     ResultsToDash(tempResults);
@@ -92,6 +92,7 @@ namespace Naga {
                 }
                 Console.SetCursorPosition(0, dashBoardLen + 1);
                 Thread.Sleep(1000);
+                cDots++;
             } while (finished != md5List.Count);
         }
         static public void ResultsToDash(List<Result> tempResults)
