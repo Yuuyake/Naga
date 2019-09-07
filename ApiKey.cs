@@ -2,7 +2,8 @@
 using System.Linq;
 using System.Text;
 
-namespace HashChecker {
+namespace Naga
+{
     public class ApiKey {
         public string name;
         public string key;

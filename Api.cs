@@ -10,11 +10,11 @@ using Newtonsoft.Json;
 using Console = Colorful.Console;
 using System.Diagnostics;
 
-namespace HashChecker {
+namespace Naga {
     public class Api {
         public List<ApiKey> apiKeys;
         public List<Result> results;
-        public List<Task> allTasks; // list of async task that will do the API calls
+        public List<Task> allTasks = new List<Task>(); // list of async task that will do the API calls
         public Random random;
         public SemaphoreSlim myLocker;
         public Stopwatch timer;
@@ -22,6 +22,7 @@ namespace HashChecker {
         public string status;
         public string apiURL;
         public WebProxy myProxySetting;
+
         public ApiKey GetaKey() {
             myLocker.Wait();
             try {
@@ -29,9 +30,12 @@ namespace HashChecker {
                     ApiKey tempKey = apiKeys.FirstOrDefault(key => key.usageLeft > 0);
                     if (tempKey == null) {
                         status = "KeyLimit";
-                        Thread.Sleep(random.Next(40000, 50000));
+                        if(timer.IsRunning == false)
+                            timer.Start();
+                        Thread.Sleep(40000);
                         apiKeys.ForEach(kk => kk.usageLeft = 4);// api key limit is 4
                         status = "NewSession";
+                        timer.Stop();
                     }
                     else {
                         apiKeys[tempKey.index].usageLeft -= 1;
@@ -43,7 +47,9 @@ namespace HashChecker {
                 myLocker.Release();
             }
         }
+        public async void Delay(int miliseconds) {await Task.Delay(miliseconds); }
         public Api() {
+            timer = new Stopwatch();
             apiKeys  = new List<ApiKey>();
             results  = new List<Result>();
             allTasks = new List<Task>();
@@ -52,14 +58,16 @@ namespace HashChecker {
             status   = "initial";
             apiURL   = "https://www.virustotal.com/vtapi/v2/file/report?apikey=";
             nFinished = 0;
-            SetKeys();
+            int counter = 0;
+            var strkeys = MainClass.speconfig.vtApiKeys;
+            strkeys.ForEach(kk => apiKeys.Add(new ApiKey(kk.id, kk.pass, 0, true, counter++)));
         }
         /// <summary>
         /// an Async methot to get all VirusTotal results of given MD5 list in aspect of McAfee and McAfee-Gw
         /// </summary>
         /// <param name="listMD5"></param>
         /// <returns></returns>
-        public void checkHashes(List<string> listMD5) {
+        public async Task checkHashesAsync(List<string> listMD5) {
             foreach (int cnt in Enumerable.Range(0, listMD5.Count))
                 results.Add(new Result(false, cnt.ToString(), listMD5[cnt], "Getting...", "Getting...", "NA", "NA"));
 
@@ -68,27 +76,30 @@ namespace HashChecker {
                 allTasks.Add(new Task(() => results[counter] = checkOneHash(listMD5[counter], counter))); // async version
                 allTasks[i].Start();
                 //results[counter] = checkOneHash(listMD5[counter], counter); // sync version
-                Thread.Sleep(200);
+                await Task.Delay(200); 
             }
         }
-        public void checkHashesNEW(List<string> listMD5) {
+        public async Task checkHashesNEWAsync(List<string> listMD5) {
             foreach (int cnt in Enumerable.Range(0, listMD5.Count))
                 results.Add(new Result(false, cnt.ToString(), listMD5[cnt], "Getting...", "Getting...", "NA", "NA"));
 
-            int maxParallel = 30;
+            int maxParallel = 10;
             for (int i = 0; i < listMD5.Count; i++) {
+                if (allTasks.Count == maxParallel){
+                    int idx = Task.WaitAny(allTasks.ToArray());
+                    allTasks[idx].Dispose();
+                    allTasks.RemoveAt(idx);
+                }
                 // counter to pass parametre to "checkOneMD5" function
                 // bc of async function takes long to start, "i" will change before it and this have to be prevented
                 int counter = i;
                 allTasks.Add(new Task(() => results[counter] = checkOneHash(listMD5[counter], counter)));
                 allTasks[counter].Start();
-                if (allTasks.Count == maxParallel) {
-                    int idx = Task.WaitAny(allTasks.ToArray());
-                    allTasks.RemoveAt(idx);
-                }
+                // non-async method
                 //results[counter] = checkOneMD5(listMD5[counter]);
-                Thread.Sleep(200);
+                await Task.Delay(200);
             }
+            Task.WaitAll(allTasks.ToArray());
         }
         /// <summary>
         /// methot to get a VirusTotal result of given MD5 in aspect of McAfee and McAfee-Gw
@@ -97,31 +108,15 @@ namespace HashChecker {
         /// <param name="callNumber"></param>
         /// <returns>string</returns>
         public Result checkOneHash(string hash, int counter) {
-            Result tempResult = new Result(false, counter.ToString(), "MD5EquivalentNotFetched", "NotFetched", "NotFetched", "NA", "NA");
             ApiKey currApiKey;
+            Result tempResult = new Result();
             while (true) {
                 currApiKey = GetaKey(); // get an API key for request
                 try {   // create request , read response
-                    string resultRaw = MakeOneRequest(currApiKey, hash);
-                    if (resultRaw == "KeyLimit")
+                    string rawResponse = MakeRequest(currApiKey, hash);
+                    if (rawResponse == "KeyLimit")
                         continue;
-                    dynamic resultJson = JsonConvert.DeserializeObject(resultRaw);
-                    try   { tempResult.md5 = resultJson.md5 ?? hash; } 
-                    catch { tempResult.md5 = hash; }
-                    if (resultJson.response_code == "0") {
-                        tempResult.resultMc = "NotInDB";
-                        tempResult.resultMcGw = "NotInDB";
-                    }
-                    else {
-                        try   { tempResult.positives  = resultJson.positives; }
-                        catch { tempResult.positives  = "NotParsed"; }
-                        try   { tempResult.overall    = resultJson.total; }
-                        catch { tempResult.overall    = "NotParsed"; }
-                        try   { tempResult.resultMc   = resultJson.scans.McAfee.detected; }
-                        catch { tempResult.resultMc   = "NotParsed"; }
-                        try   { tempResult.resultMcGw = resultJson.scans["McAfee-GW-Edition"].detected; }
-                        catch { tempResult.resultMcGw = "NotParsed"; }
-                    }
+                    tempResult = ResolveResponse(rawResponse, hash,counter);
                 }
                 catch (System.Exception e) {
                     if (e.Message.Contains("403"))
@@ -134,15 +129,11 @@ namespace HashChecker {
                 return tempResult;
             }// while (true)
         }// checkMD5s(string MD5)
-        /// <summary>
-        /// 
-        /// </summary>
-        /// <returns></returns>
-        public string MakeOneRequest(ApiKey currApiKey, string hash) {
+        public string MakeRequest(ApiKey currApiKey, string hash) {
             string resultRaw = "NoResultFetched";
             //Console.WriteFormatted("\n ├─{0} Requesting result: [{1}]", Color.Cyan, Color.FromArgb(0, 255, 0), "-{APIKEY " + currApiKey.index + "}", md5);
             HttpWebRequest requestAPI = (HttpWebRequest)WebRequest.Create(apiURL + currApiKey.key + "&resource=" + hash);
-            requestAPI.Proxy = myProxySetting;
+            //requestAPI.Proxy = myProxySetting;
             using (HttpWebResponse response = (HttpWebResponse)requestAPI.GetResponse()) {
                 if (response.Headers.ToString().Contains("You have reached your API quota limits") == true) {
                     apiKeys[currApiKey.index].usageLeft = 0;
@@ -154,11 +145,29 @@ namespace HashChecker {
             }
             return resultRaw;
         }
-        public void SetKeys() {
-            int counter = 0;
-            var strkeys = MainClass.speconfig.vtApiKeys;
-            strkeys.ForEach(kk => apiKeys.Add(new ApiKey(kk.id,kk.pass, 0, true, counter++)));
-            counter = 0;
+        public Result ResolveResponse(string rawResponse, string hash, int counter)
+        {
+            Result tempResult = new Result(false, counter.ToString(), "MD5EquivalentNotFetched", "NotFetched", "NotFetched", "NA", "NA");
+            dynamic resultJson = JsonConvert.DeserializeObject(rawResponse);
+            try { tempResult.md5 = resultJson.md5 ?? hash; }
+            catch { tempResult.md5 = hash; }
+            if (resultJson.response_code == "0")
+            {
+                tempResult.resultMc = "NotInDB";
+                tempResult.resultMcGw = "NotInDB";
+            }
+            else
+            {
+                try { tempResult.positives = resultJson.positives; }
+                catch { tempResult.positives = "NotParsed"; }
+                try { tempResult.overall = resultJson.total; }
+                catch { tempResult.overall = "NotParsed"; }
+                try { tempResult.resultMc = resultJson.scans.McAfee.detected; }
+                catch { tempResult.resultMc = "NotParsed"; }
+                try { tempResult.resultMcGw = resultJson.scans["McAfee-GW-Edition"].detected; }
+                catch { tempResult.resultMcGw = "NotParsed"; }
+            }
+            return tempResult;
         }
     }//end of Class
 }

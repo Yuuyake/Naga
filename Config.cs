@@ -5,7 +5,8 @@ using System.Globalization;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
 
-namespace HashChecker {
+namespace Naga
+{
     public partial class Config {
         [JsonProperty("proxyAdress")]
         public string proxyAdress { get; set; }

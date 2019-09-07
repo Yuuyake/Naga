@@ -16,14 +16,14 @@ using System.Linq;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
-using HashChecker.Properties;
 using Microsoft.Office.Interop.Outlook;
 using OutlookApp = Microsoft.Office.Interop.Outlook.Application;
 using Console = Colorful.Console;
 using System.Text.RegularExpressions;
 using Newtonsoft.Json;
+using Naga.Properties;
 
-namespace HashChecker {
+namespace Naga {
     public class MainClass {
         static public Api vtApi;
         static public Config speconfig;
@@ -47,61 +47,66 @@ namespace HashChecker {
             try {
                 md5List = new List<string>(File.ReadAllLines(hashFile));
                 md5List = md5List.Select(s => String.Join("", s.Split(',', '\n', '\t'))).Distinct().ToList(); // clean dirty md5 list
-                liveBoard = Task.Factory.StartNew(() => LiveBoard()); // run the liveboard to see results alive
-                vtApi.checkHashes(md5List);
-
+                liveBoard = new Task( () => LiveBoardAsync()); // run the liveboard to see results alive
+                liveBoard.Start();
+                //vtApi.checkHashes(md5List);
+                vtApi.checkHashesNEWAsync(md5List);
                 liveBoard.Wait();
                 vtApi.results = vtApi.results.OrderBy(ss => ss.resultMc).ToList();
             }
             catch (System.Exception e) {
                 Console.WriteLineFormatted("\n | Exception: " + e.Message, Color.Red);
             }
-            LiveBoard();//run again to show last results
-            WriteToFile();
-            WriteCsirtMail();
-            WriteAtarMail();
-            Console.SetCursorPosition(0, banner.Split('\n').ToList().Count + vtApi.results.Count + 3);
+            LiveBoardAsync();//run again to show last results
+            //WriteToFile();
+            //WriteCsirtMail();
+            //WriteAtarMail();
+            Console.SetCursorPosition(0, banner.Split('\n').Count() + vtApi.results.Count + 4);
             Console.WriteFormatted("\n__________________________________________  ALL DONE ".PadRight(100,'_'), Color.LightGoldenrodYellow);
             Console.WriteFormatted("\n_".PadRight(100,'_'), Color.LightGoldenrodYellow);
             Console.ReadLine();
             Environment.Exit(0);
         }
-        /// <summary>
-        /// 
-        /// </summary>
-        static void LiveBoard() {
+        static void LiveBoardAsync() {
             Console.Clear();
-            string blank = new string('_', 28);
+            Console.SetCursorPosition(0, 0);
             Console.WriteFormatted(banner, Color.LightGoldenrodYellow);
-            int dashBoardLen = Resources.banner.Split('\n').Count();
+            int dashBoardLen = banner.Split('\n').Count();
             int finished = 0;
+            int cDots = 0;
             do {
-                List<Result> tempResults = vtApi.results.ToList();
+                List<Result> tempResults = vtApi.results;
                 finished = vtApi.nFinished;
+                string waiting = "0";
                 try {
-                    Console.SetCursorPosition(0, dashBoardLen);
-                    Console.WriteFormatted("\tRequests Sent [{0}/{1}] DONE \n\n", Color.Cyan, Color.LightGoldenrodYellow, finished, md5List.Count);
-                    Console.WriteFormatted("\t  " + header + Environment.NewLine, Color.LightGoldenrodYellow);
-                    Color backColor;
-                    int counter = 0;
-                    foreach (var oneResult in tempResults) {
-                        backColor = Color.Green;
-                        if (oneResult.isCompleted == false || oneResult.resultMc == "NotParsed")
-                            backColor = Color.Red;
-                        Console.WriteLineFormatted("\t│ [{0}] " + oneResult.DashPrint(), Color.Cyan, backColor, (counter + 1).ToString().PadRight(3));
-                        counter++;
-                    }// end of for
+                    if (vtApi.timer.IsRunning)
+                        waiting = (vtApi.timer.ElapsedMilliseconds / 1000).ToString();
+                    Console.SetCursorPosition(0, dashBoardLen + 1);
+                    Console.WriteFormatted("\tRequests Sent [{0}/{1}] DONE " + "".PadRight(cDots%5+1,'.').PadRight(6) + "Seconds for new Requests: {2}\n\n",
+                        Color.Cyan, Color.LightGoldenrodYellow, finished, md5List.Count,waiting);
+                    Console.WriteFormatted("\t  " + header, Color.LightGoldenrodYellow);
+                    ResultsToDash(tempResults);
                 }// end of try
                 catch (System.Exception e) {
                     Console.Write("\n\n X│ " + e.Message);
                 }
-                Console.SetCursorPosition(0, 0);
-                Thread.Sleep(900);
+                Console.SetCursorPosition(0, dashBoardLen + 1);
+                Thread.Sleep(1000);
             } while (finished != md5List.Count);
         }
-        /// <summary>
-        /// Prepares mail for SOME
-        /// </summary>
+        static public void ResultsToDash(List<Result> tempResults)
+        {
+            int counter = 0;
+            Color backColor;
+            foreach (var oneResult in tempResults)
+            {
+                backColor = Color.Green;
+                if (oneResult.isCompleted == false || oneResult.resultMc == "NotParsed")
+                    backColor = Color.Red;
+                Console.WriteFormatted("\n\t│ [{0}] " + oneResult.DashPrint(), Color.Cyan, backColor, (counter + 1).ToString().PadRight(3));
+                counter++;
+            }// end of for
+        }
         static void WriteCsirtMail() {
             string attachFile = Directory.GetCurrentDirectory() + "\\results.txt";
             var resultStr = header + "<br/>" + String.Join("",vtApi.results.Select(ss => ss.ToString() + "  <br/>"));
@@ -128,9 +133,6 @@ Syg.<br/>
             }
             mailItem.Display();
         }
-        /// <summary>
-        /// Prepares mail for ATAR
-        /// </summary>
         static void WriteAtarMail() {
             string attachFile = Directory.GetCurrentDirectory() + "\\results.txt";
             string mailBody = String.Join("", vtApi.results.Where(ss =>
@@ -140,14 +142,11 @@ Syg.<br/>
             MailItem mailItem = outlookApp.CreateItem(OlItemType.olMailItem);
             mailItem.To = speconfig.atarMail;
             mailItem.CC = speconfig.csirtMail;
-            mailItem.Subject = speconfig.atarTitle + HashChecker.Helpers.userName + "_" + DateTime.Now.ToString("ddMMMMyyyy");
+            mailItem.Subject = speconfig.atarTitle + Naga.Helpers.userName + "_" + DateTime.Now.ToString("ddMMMMyyyy");
             mailItem.HTMLBody = "<p style=\"font-family:'consolas'\" >" + mailBody + "</p>";
             mailItem.Importance = OlImportance.olImportanceHigh;
             mailItem.Display();
         }
-        /// <summary>
-        /// 
-        /// </summary>
         static void WriteToFile() {
             File.WriteAllText("results.txt", header + Environment.NewLine);
             File.AppendAllLines("results.txt", vtApi.results.Select(ss => ss.ToString()).ToArray());

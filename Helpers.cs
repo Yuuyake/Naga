@@ -5,7 +5,8 @@ using System.Net;
 using System.Security;
 using Console = Colorful.Console;
 
-namespace HashChecker {
+namespace Naga
+{
     class Helpers {
         static public string userName = "unknown";
         /// <summary>

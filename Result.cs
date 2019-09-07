@@ -4,7 +4,8 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace HashChecker {
+namespace Naga
+{
     public class Result {
         public string order;
         public string md5;
@@ -13,7 +14,15 @@ namespace HashChecker {
         public string overall;
         public string positives;
         public bool isCompleted = false;
-        public Result(bool isCompleted, string order, string md5, string resultMcGw, string resultMc, string overall, string positives) {
+        public Result(
+            bool isCompleted = false,
+            string order = "NULL",
+            string md5 = "NULL",
+            string resultMcGw = "NULL",
+            string resultMc = "NULL",
+            string overall = "NULL",
+            string positives = "NULL")
+        {
             this.overall    = overall;
             this.positives  = positives;
             this.order      = order;
